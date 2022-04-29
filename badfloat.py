@@ -114,12 +114,15 @@ def WriteFloatTable(table, fp):
         return
 
     numFlts = FillBin(numFlts, v[numVari])
-    print(numFlts)
     numVari = bin(numVari)[2:]
     numVari = FillBin(numVari, 2)
 
+    print("Generating...")
+
     varis = ''
     flts = ''
+    i = 0
+    l = len(table.floats)
     for flt in table.floats:
         fltBin, maVarient, exVarient = WriteFloat(flt)
         maVarient = bin(maVarient)[2:]
@@ -128,7 +131,11 @@ def WriteFloatTable(table, fp):
         exVarient = FillBin(exVarient, 2)
         varis += f"{maVarient}{exVarient}"
         flts += f"{fltBin}"
-        print(fltBin)
+        p = (i/l) * 100
+        print(f"{fltBin} ({i}/{l} - {p:.1f}%)")
+        i+=1
+
+    print("Writing...")
 
     final = f"{numVari}{numFlts}{varis}{flts}"
     fL = len(final)
@@ -138,6 +145,7 @@ def WriteFloatTable(table, fp):
 
     f.write(HexBytes(magicHeader))
     f.write(ba)
+    print(f"Successfully wrote {len(table.floats)} floats.")
 
 def ValidateBinary(b):
     nt = int(b[:88], 2)
@@ -145,9 +153,11 @@ def ValidateBinary(b):
     return h == magicHeader
 
 def ReadFloatTable(fp):
+    global table
+    print("Reading...")
     f = open(fp, "rb")
     data = "".join(f"{n:08b}" for n in f.read())
-    print(data) #RAW BINARY
+    #print(data) #RAW BINARY
 
     if data == '':
         print("INVALID FILE")
@@ -156,10 +166,9 @@ def ReadFloatTable(fp):
         print("INVALID FILE")
         return
 
-    data = data[87:] #Discard magic word
+    data = data[88:] #Discard magic word
     
-    numVari = data[0:2]
-    print(numVari)
+    numVari = data[:2]
     numVari = int(numVari, 2)
     expNum = 8
     if numVari == 1:
@@ -168,9 +177,9 @@ def ReadFloatTable(fp):
         expNum = 32
     if numVari == 3:
         expNum = 64
-    print(f"NoF Length: {expNum}b")
+    print(f"# Floats length: {expNum}b")
 
-    data = data[3:] #Discard num variant
+    data = data[2:] #Discard num variant
 
     numFlts = data[:expNum]
     numFlts = int(numFlts, 2)
@@ -192,7 +201,7 @@ def ReadFloatTable(fp):
         totalFltDataBits += v[maV] + v[expV] # Add total data bits so can segment floats properly
         varis.append((maV, expV))
 
-    print(f"Float variations: {varis}")
+    #print(f"Float variations: {varis}")
 
     data = data[numFlts*4:] #Discard float variations
 
@@ -222,6 +231,9 @@ def ReadFloatTable(fp):
         index += 1
 
     print(f"Floats: {flts}")
+    print(f"Successfully loaded {len(flts)} floats.")
+
+    table = FloatTable(flts)
 
 
     
@@ -260,12 +272,16 @@ def ParseAction(inp):
                 continue
             flts.append(float(flt))
         table.floats = flts
-    elif 'debug' in inp.lower():
-        parts = inp.lower().split(" ")
-        flt = float(parts[1])
-        WriteFloat(flt)
+    elif inp.lower() == 'debug':
+        action = input("Debug Action (Txt Dump): ")
+        if 'txt' in action.lower():
+            f = open('dump.txt', 'w')
+            v = '\n'.join(table.StringList())
+            f.write(v)
+            print("Dumped table to dump.txt.")
+        
 
 while True:
     print()
-    action = input("Action (Generate, Make, Load, Save, Print): ")
+    action = input("Action (Generate, Make, Load, Save, Print, Debug): ")
     ParseAction(action)

@@ -59,6 +59,7 @@ def WriteFloat(flt):
     #varient: 0 - 8bit, 1 - 16bit, 2 - 32bit, 3 - 64bit
     v = [8, 16, 32, 64]
     maVarient = 0
+    cutOff = 0
     maL = len(mantissa)
     if maL > 8:
         maVarient = 1
@@ -68,10 +69,11 @@ def WriteFloat(flt):
         maVarient = 3
     if maL > 64:
         mantissa = bin(int(str(abs(data[0]))[:19]))[2:]
+        cutOff = len(str(abs(data[0]))) - len(str(abs(data[0]))[:19])
 
     mantissa = FillBin(mantissa, v[maVarient])
 
-    exp = int(abs(data[1]))
+    exp = int(abs(data[1])) - cutOff
     exponent = bin(exp)[2:]
     exVarient = 0
     exL = len(exponent)
@@ -82,7 +84,7 @@ def WriteFloat(flt):
     if exL > 32:
         exVarient = 3
     if exL > 64:
-        exponent = bin(int(str(abs(data[1]))[:19]))[2:]
+        exponent = bin(int(str(abs(data[1]))[:19]) - cutOff)[2:]
 
     exSign = '0'
     if data[1] < 0:
@@ -129,7 +131,6 @@ def WriteFloatTable(table, fp):
         print(fltBin)
 
     final = f"{numVari}{numFlts}{varis}{flts}"
-    final = f"{numVari}{numFlts}{varis}"
     fL = len(final)
     mEight = (fL + 7) & (-8)
     final = FillBin(final, mEight, False)
@@ -155,9 +156,7 @@ def ReadFloatTable(fp):
         print("INVALID FILE")
         return
 
-    data = data[89:] #Discard magic word
-
-    print(data)
+    data = data[87:] #Discard magic word
     
     numVari = data[0:2]
     print(numVari)
@@ -173,10 +172,7 @@ def ReadFloatTable(fp):
 
     data = data[3:] #Discard num variant
 
-    print(data)
-
     numFlts = data[:expNum]
-    print(numFlts)
     numFlts = int(numFlts, 2)
     print(f"Number of Floats: {numFlts}")
 
@@ -254,6 +250,16 @@ def ParseAction(inp):
     elif inp.lower() == 'print':
         floats = table.floats
         print(floats)
+    elif inp.lower() == 'make':
+        finished = False
+        flts = []
+        while not finished:
+            flt = input(f"Float[{len(flts)}]= ")
+            if flt == "":
+                finished = True
+                continue
+            flts.append(float(flt))
+        table.floats = flts
     elif 'debug' in inp.lower():
         parts = inp.lower().split(" ")
         flt = float(parts[1])
@@ -261,5 +267,5 @@ def ParseAction(inp):
 
 while True:
     print()
-    action = input("Action (Generate, Load, Save, Print): ")
+    action = input("Action (Generate, Make, Load, Save, Print): ")
     ParseAction(action)

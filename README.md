@@ -1,2 +1,2 @@
 # Badfloat.py
- A dumb file format im making cause im bored xd
+ A dumb file format that parses a large array of floats
